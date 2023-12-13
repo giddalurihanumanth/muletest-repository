@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="8d6eb4b3-e3d3-4154-84ca-f012de6bce2c" basePath="sample_emp" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="60a1011b-13ea-4fd8-876e-c2dc60ce9426" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="netweb12" database="mysql" />
+	</db:config>
+	<flow name="foreachFlow" doc:id="45162d56-831e-4465-aa2e-6d3e0e138a02" >
+		<http:listener doc:name="Listener" doc:id="289ab183-b95f-43dc-b153-ec1b65530652" config-ref="HTTP_Listener_config" path="fetch" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Logger" doc:id="0ae9e0d2-eb80-4cb7-917e-3e594d7cdfcb" message="#[payload]" />
+		<db:select doc:name="Select" doc:id="7b0ecdae-d836-4437-8dd0-72c598229978" config-ref="Database_Config">
+			<db:sql ><![CDATA[select emp_id,emp_name,emp_status,Salary,age from sample_emp]]></db:sql>
+		</db:select>
+		<foreach doc:name="For Each" doc:id="03714b43-d514-4085-aaa5-0a4815d1d9e7" collection="#[payload]">
+			<logger level="INFO" doc:name="Logger" doc:id="3f1fbde9-165a-4120-b7ff-29097b07e263" message="for each log...#[payload]"/>
+			<http:request method="OPTIONS" doc:name="Request" doc:id="87c51c09-2eb1-4eae-b867-a9c8169845bd" url="https://dummy.restapiexample.com/api/v1/employee/{emp_id}">
+				<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	"emp_id" : "payload.emp_id"
+}]]]></http:uri-params>
+			</http:request>
+			<logger level="INFO" doc:name="Logger" doc:id="62ae2be4-1a1a-4060-bbc7-48dfd3098fc7" message="finance service responce: #[payload]"/>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="0d2e8a2f-b4f9-4531-be09-3a631f7aa52e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	responce: "success",
+	code: 200
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a8af9645-3c94-46f4-bad6-92a1b2e952b7" message="#[payload]"/>
+	</flow>
+</mule>
